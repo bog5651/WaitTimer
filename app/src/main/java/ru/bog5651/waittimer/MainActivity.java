@@ -2,58 +2,53 @@ package ru.bog5651.waittimer;
 
 import android.app.Activity;
 import android.os.Bundle;
-import android.os.Handler;
-import android.util.Log;
-import android.view.View;
 import android.view.WindowManager;
-import android.widget.TextView;
+import android.widget.FrameLayout;
 
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.fragment.app.Fragment;
+import androidx.fragment.app.FragmentTransaction;
+
+import ru.bog5651.waittimer.Fragments.PasswordFragment;
+import ru.bog5651.waittimer.Fragments.QcCodeFragment;
 import ru.bog5651.waittimer.databinding.ActivityMainBinding;
 
-public class MainActivity extends Activity {
-    private TextView timerView;
-    private View root;
+public class MainActivity extends AppCompatActivity {
+    private FrameLayout frameLayout;
     private ActivityMainBinding binding;
-    final Handler h = new Handler();
-    private TgClient client;
-
-    private int seconds = 30;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
-        client = new TgClient(getCacheDir());
-
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 
         binding = ActivityMainBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
 
-        timerView = binding.timer;
-        root = binding.root;
+        frameLayout = binding.fragmentRoot;
 
-        root.setOnClickListener(v -> {
-            seconds = 30;
-            timerView.setText(String.valueOf(seconds));
-            Log.d("My app", String.format("onCreate: %s", client.link));
+        MainApplication app = (MainApplication) getApplication();
+        TgClient client = app.getClient();
+        client.setOnLinkReceived(new TgClient.Receiver() {
+            @Override
+            public void onReceivedLink(String link) {
+                setFragment(new QcCodeFragment());
+            }
+
+            @Override
+            public void onWaitPassword() {
+                setFragment(new PasswordFragment());
+            }
         });
 
-        h.postDelayed(new Runnable() {
-            @Override
-            public void run() {
-                if (seconds <= 0) {
-//                    finishAffinity();
-                    return;
-                }
-                runOnUiThread(() -> {
-                    seconds = seconds - 1;
-                    timerView.setText(String.valueOf(seconds));
-                });
-                h.postDelayed(this, 1000);
-            }
-        }, 1000);
+        client.init();
+    }
 
-        timerView.setText(String.valueOf(seconds));
+    public void setFragment(Fragment fragment) {
+        //TODo repace, not add
+        FragmentTransaction fragmentTransaction = getSupportFragmentManager().beginTransaction();
+        fragmentTransaction
+                .add(frameLayout.getId(), fragment, fragment.getClass().getSimpleName())
+                .commitAllowingStateLoss();
     }
 }

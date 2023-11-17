@@ -1,6 +1,5 @@
 package ru.bog5651.waittimer;
 
-import android.util.Base64;
 import android.util.Log;
 
 import org.drinkless.td.libcore.telegram.Client;
@@ -15,8 +14,13 @@ public class TgClient {
     private Client client;
     public String link;
 
+    private Receiver onLinkReceived;
+
     public TgClient(File appDir) {
         this.appDir = appDir;
+    }
+
+    public void init() {
         client = Client.create(object -> {
             Log.d("My app", String.format("update handler: %s", object.toString()));
 
@@ -34,6 +38,10 @@ public class TgClient {
         this.setTdlibParameters(null);
     }
 
+    public void setOnLinkReceived(Receiver onLinkReceived) {
+        this.onLinkReceived = onLinkReceived;
+    }
+
     private void onAuthorizationStateUpdated(TdApi.AuthorizationState authorizationState) {
         if (authorizationState != null) {
             state = authorizationState;
@@ -44,6 +52,7 @@ public class TgClient {
                 break;
             case TdApi.AuthorizationStateWaitOtherDeviceConfirmation.CONSTRUCTOR:
                 link = ((TdApi.AuthorizationStateWaitOtherDeviceConfirmation) state).link;
+                this.onLinkReceived.onReceivedLink(link);
                 break;
             case TdApi.AuthorizationStateWaitEncryptionKey.CONSTRUCTOR:
                 this.checkDBEncriptionKey();
@@ -59,6 +68,7 @@ public class TgClient {
             case TdApi.AuthorizationStateWaitCode.CONSTRUCTOR:
                 break;
             case TdApi.AuthorizationStateWaitPassword.CONSTRUCTOR:
+                this.onLinkReceived.onWaitPassword();
                 break;
             case TdApi.AuthorizationStateWaitPhoneNumber.CONSTRUCTOR:
                 this.switchToOtherDeviseConfirmation();
@@ -104,5 +114,10 @@ public class TgClient {
 
         TdApi.CheckDatabaseEncryptionKey request = new TdApi.CheckDatabaseEncryptionKey(data);
         client.send(request, null);
+    }
+
+    public interface Receiver {
+        void onReceivedLink(String link);
+        void onWaitPassword();
     }
 }

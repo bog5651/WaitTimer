@@ -1,0 +1,7 @@
+<resources>
+    <style name="AppTheme" parent="Theme.AppCompat.Light.NoActionBar">
+    </style>
+
+    <style name="MyHintText" parent="TextAppearance.AppCompat.Small">
+    </style>
+</resources>
